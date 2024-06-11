@@ -10,6 +10,8 @@ class ResultsStorage(xr.DataArray):
                   attrs = None, indexes = None, fastpath: bool = False) -> None:
         super().__init__(data, coords, dims, name, attrs, indexes, fastpath)
 
+    __slots__ = ()#Subclass of DataAray do not define new attributes
+
     @classmethod
     def init_dims_coords(cls,dims, coords,fill_value=np.nan, **kwargs):
         dim_cords_lengths = tuple( len(coords[dim_name]) for dim_name in dims)

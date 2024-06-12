@@ -100,12 +100,15 @@ class ResultsStorageTest(unittest.TestCase):
         for a_name in a["A"].values:
             for b_name in a["B"].values:
                 for c_name in a["C"].values:
+                    self.assertFalse( np.any( np.isnan(merged.loc[{"A":a_name, "B":b_name, "C":c_name}] ) ), "No NaNs should be here!")
                     self.assertTrue(np.allclose(a.loc[{"A":a_name, "B":b_name, "C":c_name}],
                                                  merged.loc[{"A":a_name, "B":b_name, "C":c_name}] ), "Chunks not the same!")
 
         
         self.assertTrue( np.all( np.isnan(merged.loc[{"A":'a2'}]) ), "Only nans should be here" )
-
+        self.assertFalse( np.any( np.isnan(merged.loc[{"A":'a0'}]) ), "No nans should be here" )
+        self.assertFalse( np.any( np.isnan(merged.loc[{"A":'a1'}]) ), "No nans should be here" )
+        
 
         
 

@@ -74,4 +74,10 @@ class ResultsStorage(xr.DataArray):
             if not bool(np.any(np.isnan( obj.loc[{dim_name:a}]))):
                 continue
             yield a
+
+    @staticmethod
+    def merge_with_loaded(loaded_obj, new_obj):
+        loaded_name = loaded_obj.name
+        merged = xr.merge( (loaded_obj, new_obj ))[loaded_name]
+        return merged
     

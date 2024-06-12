@@ -76,7 +76,35 @@ class ResultsStorageTest(unittest.TestCase):
 
         self.assertTrue(cnt == 1, "Wrong number of recalcs" ) 
 
+    def test_merge(self):
+        coords1 = {
+        "A":["a{}".format(i) for i in range(2)],
+        "B":["b{}".format(i) for i in [4,5,6]],
+        "C":["b{}".format(i) for i in [7,8,9]],
+        }
 
+        coords2 = {
+        "A":["a{}".format(i) for i in range(3)],
+        "B":["b{}".format(i) for i in [4,5,6]],
+        "C":["b{}".format(i) for i in [7,8,9]],
+        }
+        a = ResultsStorage.init_dims_coords(dims=("A","B","C"), coords=coords1,fill_value=0, name="a")
+        a[:] = np.random.random( (2,3,3) )   
+        b = ResultsStorage.init_dims_coords(dims=("A","B","C"), coords=coords2,fill_value=1, name="b")
+
+        merged = ResultsStorage.merge_with_loaded(a,b)
+        self.assertIsNotNone(merged, "Merged object is none")
+        self.assertIsInstance(merged, xr.DataArray, "Not an instance of DataArray")
+        self.assertTupleEqual( merged.shape, (3,3,3), "Wrong shape of merged object")
+
+        for a_name in a["A"].values:
+            for b_name in a["B"].values:
+                for c_name in a["C"].values:
+                    self.assertTrue(np.allclose(a.loc[{"A":a_name, "B":b_name, "C":c_name}],
+                                                 merged.loc[{"A":a_name, "B":b_name, "C":c_name}] ), "Chunks not the same!")
+
+        
+        self.assertTrue( np.all( np.isnan(merged.loc[{"A":'a2'}]) ), "Only nans should be here" )
 
 
         

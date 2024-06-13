@@ -108,8 +108,9 @@ class ResultsStorageTest(unittest.TestCase):
         self.assertTrue( np.all( np.isnan(merged.loc[{"A":'a2'}]) ), "Only nans should be here" )
         self.assertFalse( np.any( np.isnan(merged.loc[{"A":'a0'}]) ), "No nans should be here" )
         self.assertFalse( np.any( np.isnan(merged.loc[{"A":'a1'}]) ), "No nans should be here" )
-        
-
+            
+        self.assertTrue( ResultsStorage.count_nans(merged) == 9, "Wrong number of Nans." )
+        self.assertTrue( ResultsStorage.count_not_nans(merged) == 18, "Wrong number of not NaN values." )
         
 
 if __name__ == '__main__':

@@ -81,3 +81,9 @@ class ResultsStorage(xr.DataArray):
         merged = xr.merge( (loaded_obj, new_obj ))[loaded_name]
         return merged
     
+    @staticmethod
+    def count_nans(data_array):
+        return np.count_nonzero(np.isnan(data_array))
+    
+    def count_not_nans(data_array):
+        return np.count_nonzero(~np.isnan(data_array))

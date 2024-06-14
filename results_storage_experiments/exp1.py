@@ -13,8 +13,16 @@ import xarray as xr
 from sklearn.metrics import accuracy_score, balanced_accuracy_score, cohen_kappa_score
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
+from enum import Enum
 
 from results_storage_experiments.settings import EXPERIMENTS_RESULTS_PATH
+
+class Dimnames(Enum):
+    METRIC= "Metric"
+    PREPROCESSOR="Pre"
+    ESTIMATOR="Estim"
+    FOLD="Fold"
+
 
 def get_metrics():
     return {
@@ -69,10 +77,10 @@ def run_experiment(n_splits=5, n_repeats=3):
 
     result_holder = ResultsStorage.init_coords(
                 coords={
-                    "Metric":[k for k in metrics],
-                    "Pre":[k for k in preprocessors],
-                    "Estim": [k for k in classifiers],
-                    "Fold":[k for k in fold_names]
+                    Dimnames.METRIC.value:[k for k in metrics],
+                    Dimnames.PREPROCESSOR.value:[k for k in preprocessors],
+                    Dimnames.ESTIMATOR.value: [k for k in classifiers],
+                    Dimnames.FOLD.value:[k for k in fold_names]
                 },
                 name="h",
                 fill_value=np.nan,
@@ -95,19 +103,19 @@ def run_experiment(n_splits=5, n_repeats=3):
         
         fold_res = []
 
-        for pre_name in ResultsStorage.coords_need_recalc(result_holder,"Pre"):
+        for pre_name in ResultsStorage.coords_need_recalc(result_holder,Dimnames.PREPROCESSOR.value):
             print("{} recalc!".format(pre_name))
             preprocessor = preprocessors[pre_name]
             X_train_pre = preprocessor.fit_transform(X_train,y_train)
             X_test_pre = preprocessor.transform(X_test)
 
-            for estim_name in ResultsStorage.coords_need_recalc(result_holder.sel(Pre=pre_name),"Estim"):
+            for estim_name in ResultsStorage.coords_need_recalc(result_holder.sel(Pre=pre_name),Dimnames.ESTIMATOR.value):
                 print("{} recalc!".format(estim_name))
                 estimator = classifiers[estim_name]
                 estimator.fit(X_train_pre, y_train)
                 y_pred = estimator.predict(X_test_pre)
 
-                for metric_name in result_holder["Metric"].values:
+                for metric_name in result_holder[Dimnames.METRIC.value].values:
                     metric = metrics[metric_name]
                     metric_value = metric(y_pred, y_test)
 
@@ -120,7 +128,12 @@ def run_experiment(n_splits=5, n_repeats=3):
     
     for fold_list in rets:
         for metric_name, pre_name, estim_name,fold_idx, metric_value in fold_list:
-            result_holder.loc[{ "Metric":metric_name, "Pre":pre_name, "Estim":estim_name, "Fold":"f{}".format(fold_idx) }] = metric_value
+            result_holder.loc[{
+                Dimnames.METRIC.value:metric_name,
+                Dimnames.PREPROCESSOR.value:pre_name,
+                Dimnames.ESTIMATOR.value:estim_name,
+                Dimnames.FOLD.value:"f{}".format(fold_idx)
+                }] = metric_value
 
 
     with open(result_file_path, "wb") as fh:
@@ -142,14 +155,15 @@ def analyse_results(results_directory, output_directory,v=1):
         
         with PdfPages(pdf_file_path) as pdf:
         
-            for metric_name in result_holder["Metric"].values:
-                for estim_name in result_holder["Estim"].values: # orders in new and old may differ
+            for metric_name in result_holder[Dimnames.METRIC.value].values:
+                for estim_name in result_holder[Dimnames.ESTIMATOR.value].values: # orders in new and old may differ
                     #metric x pre x estim x fold
                     # pre x fold
-                    sub_results = result_holder.loc[{"Metric":metric_name, "Estim":estim_name}].to_numpy()
+                    sub_results = result_holder.loc[{Dimnames.METRIC.value:metric_name, 
+                                                     Dimnames.ESTIMATOR.value:estim_name}].to_numpy()
                     plt.boxplot(sub_results.transpose())
                     plt.title("{}, {} ".format(metric_name, estim_name))
-                    pre_names  = result_holder["Pre"].values 
+                    pre_names  = result_holder[Dimnames.PREPROCESSOR.value].values 
                     plt.xticks(range(1,len(pre_names) +1), pre_names)
                     pdf.savefig()
                     plt.close()

@@ -72,7 +72,7 @@ test_parallel: pypackages
 docs: pypackages
 	${ACTIVATE}; $(PDOC) --force --html ${SRCDIR} --output-dir ${DOCS_DIR}
 
-profile: pypackages data_unp
+profile: pypackages
 
 	${ACTIVATE}; ${PYTEST} -n auto --cov-report=html --cov=${SRCDIR} --profile ${TESTDIR}
 

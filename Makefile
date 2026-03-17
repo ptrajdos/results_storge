@@ -10,16 +10,23 @@ INSTALL_LOG_FILE=${ROOTDIR}/install.log
 VENV_SUBDIR=${ROOTDIR}/venv
 COVERAGERC=${ROOTDIR}/.coveragerc
 DOCS_DIR=${ROOTDIR}/docs
+TOXDIR=${ROOTDIR}/.tox
 
 COVERAGE = coverage
 UNITTEST_PARALLEL = unittest-parallel
 PDOC= pdoc3
 PYTHON=python
+SYSPYTHON=python
+#--system-site-packages
+VENV_OPTIONS=
 PIP=pip
+PYTEST=pytest
+TOX=tox
 
 LOGDIR=${ROOTDIR}/testlogs
 LOGFILE=${LOGDIR}/`date +'%y-%m-%d_%H-%M-%S'`.log
 
+TOX_CORES=auto
 
 PYTHON_VERSION=3.9
 
@@ -31,22 +38,44 @@ endif
 
 .PHONY: all clean test docs
 
-clean:
+all:profile 
+
+clean: clean_pypackages clean_venv clean_tox
+	@echo "Cleaning up build artifacts, virtual environments, and test logs..."
+
+clean_pypackages:
+	rm -rf pypackages
+
+clean_venv:
 	rm -rf ${VENV_SUBDIR}
 
-venv:
-	${PYTHON} -m venv ${VENV_SUBDIR}
-	${ACTIVATE}; ${PIP} install -e ${ROOTDIR} --prefer-binary --log ${INSTALL_LOG_FILE} -r ${REQ_FILE}
+clean_tox:
+	rm -rf ${TOXDIR}
 
-test: venv
+venv:
+	${SYSPYTHON} -m venv --upgrade-deps ${VENV_OPTIONS} ${VENV_SUBDIR}
+	${ACTIVATE}; ${PYTHON} -m ${PIP} install wheel setuptools pypackages
+
+pypackages: venv
+	${ACTIVATE}; ${PYTHON} -m ${PIP} install -e ${ROOTDIR} --prefer-binary --log ${INSTALL_LOG_FILE} -r ${REQ_FILE}
+	touch $@
+test: pypackages
 	mkdir -p ${LOGDIR}  
 	${ACTIVATE}; ${COVERAGE} run --branch  --source=${SRCDIR} -m unittest discover -p '*_test.py' -v -s ${TESTDIR} 2>&1 |tee -a ${LOGFILE}
 	${ACTIVATE}; ${COVERAGE} html --show-contexts
 
 
-test_parallel: venv
+test_parallel: pypackages
 	mkdir -p ${COVDIR} ${LOGDIR}
 	${ACTIVATE}; ${UNITTEST_PARALLEL} --class-fixtures -v -t ${ROOTDIR} -s ${TESTDIR} -p '*_test.py' --coverage --coverage-rcfile ./.coveragerc --coverage-source ${SRCDIR} --coverage-html ${COVDIR}  2>&1 |tee -a ${LOGFILE}
 
-docs:
+docs: pypackages
 	${ACTIVATE}; $(PDOC) --force --html ${SRCDIR} --output-dir ${DOCS_DIR}
+
+profile: pypackages data_unp
+
+	${ACTIVATE}; ${PYTEST} -n auto --cov-report=html --cov=${SRCDIR} --profile ${TESTDIR}
+
+
+tox_check: pypackages
+	${ACTIVATE}; ${TOX} -p ${TOX_CORES} 
